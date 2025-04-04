@@ -1,0 +1,123 @@
+name: build and push image
+
+on:
+  pull_request:
+  push:
+    branches:
+      - azul
+
+env:
+  # The fully qualified image name of the image to build. The first component is
+  # the host name of the registry that primarily hosts the image.
+  #
+  azul_docker_go_zetasql_image: docker.io/ucscgi/azul-go-zetasql
+
+  # An optional prefix for the image name if the image is to be pushed to an
+  # alternate registry instead of the one noted in the image name above.
+  #
+  azul_docker_registry: ""
+
+  # The tag of the image that's used as the base for this image. Because this
+  # value isn't reflected in the tag for this image, you also need to bump the
+  # internal version below when changing this variable.
+  #
+  azul_docker_go_zetasql_base_image_tag: 1.21-bookworm
+
+  # The version where this repo diverges from the upstream repo.
+  #
+  azul_docker_go_zetasql_upstream_version: 0.5.5
+
+  # The version of this image. The image will be tagged with the version of the
+  # upstream image followed by the value of this variable. Increment this value
+  # to update the OS packages installed in the image.
+  # 
+  # Both this value (internal_version) and the combined value (upstream_version
+  # + internal_version) will be passed as arguments to the Dockerfile.
+  #
+  azul_docker_go_zetasql_internal_version: 1
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # By setting an env variable using the shell, we can use the value of
+      # existing env variables in the new variable's value.
+      - run: >
+          echo azul_docker_go_zetasql_version=${{ format(
+          '{0}-{1}',
+          env.azul_docker_go_zetasql_upstream_version,
+          env.azul_docker_go_zetasql_internal_version
+          ) }} >> "$GITHUB_ENV"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64
+
+      - name: cache for linux
+        uses: actions/cache@v3
+        if: runner.os == 'Linux'
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Log into registry
+        if: >
+          github.event_name != 'pull_request'
+          && vars.AZUL_DOCKER_REGISTRY_USER
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.AZUL_DOCKER_REGISTRY_USER }}
+          password: ${{ secrets.AZUL_DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Build and conditionally push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          build-args: |
+            azul_docker_go_zetasql_base_image_tag=${{ env.azul_docker_go_zetasql_base_image_tag }}
+            azul_docker_go_zetasql_internal_version=${{ env.azul_docker_go_zetasql_internal_version }}
+            VERSION=${{ env.azul_docker_go_zetasql_version }}
+          platforms: linux/amd64
+          context: .
+          # We disable provenance for a single platform (non-multiarch) build
+          # https://github.com/docker/build-push-action/issues/755
+          provenance: false
+          # FIXME: Build arm64 version of azul-bigquery-emulator
+          #        https://github.com/DataBiosphere/azul/issues/6090
+          # platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: "${{ format(
+            '{0}{1}:{2}',
+            env.azul_docker_registry,
+            env.azul_docker_go_zetasql_image,
+            env.azul_docker_go_zetasql_version
+          ) }}"
+          cache-from: |
+            type=local,src=~/.cache/go-build
+            ${{ format(
+              'type=registry,ref={0}{1}_buildcache',
+              env.azul_docker_registry,
+              env.azul_docker_go_zetasql_image
+            ) }}
+          # The value after '&&' in a ternary operator must be truthy, and since
+          # an empty string is falsy, we use ' ' instead.
+          cache-to: "${{ github.event_name == 'pull_request' && ' ' || format(
+            'type=registry,ref={0}{1}_buildcache,mode=max',
+            env.azul_docker_registry,
+            env.azul_docker_go_zetasql_image
+          ) }}"
