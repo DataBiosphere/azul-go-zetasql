@@ -126,3 +126,40 @@ jobs:
             env.azul_docker_go_zetasql_image,
             matrix.platform
           ) }}"
+
+  make-manifest:
+    needs: build-image
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Log into registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.AZUL_DOCKER_REGISTRY_USER }}
+          password: ${{ secrets.AZUL_DOCKER_REGISTRY_PASSWORD }}
+
+      # By setting an env variable using the shell, we can use the value of
+      # existing env variables in the new variable's value.
+      - run: >
+          echo azul_docker_go_zetasql_version=${{ format(
+          '{0}-{1}',
+          env.azul_docker_go_zetasql_upstream_version,
+          env.azul_docker_go_zetasql_internal_version
+          ) }} >> "$GITHUB_ENV"
+      - run: >
+          echo azul_docker_go_zetasql_tagged_image=${{ format(
+          '{0}{1}:{2}',
+          env.azul_docker_registry,
+          env.azul_docker_go_zetasql_image,
+          env.azul_docker_go_zetasql_version
+          ) }} >> "$GITHUB_ENV"
+
+      # https://github.com/Noelware/docker-manifest-action
+      - name: Assemble and conditionally push Docker image index
+        uses: Noelware/docker-manifest-action@0.4.3
+        with:
+          images: |
+            ${{ env.azul_docker_go_zetasql_tagged_image }}-arm64,
+            ${{ env.azul_docker_go_zetasql_tagged_image }}-amd64
+          inputs: ${{ env.azul_docker_go_zetasql_tagged_image }}
+          push: ${{ github.event_name != 'pull_request' }}
