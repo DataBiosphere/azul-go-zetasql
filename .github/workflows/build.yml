@@ -79,7 +79,7 @@ jobs:
         with:
           platforms: ${{ matrix.platform }}
 
-      - name: cache for linux
+      - name: Cache for linux
         uses: actions/cache@v3
         if: runner.os == 'Linux'
         with:
@@ -91,9 +91,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Log into registry
-        if: >
-          github.event_name != 'pull_request'
-          && vars.AZUL_DOCKER_REGISTRY_USER
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           username: ${{ vars.AZUL_DOCKER_REGISTRY_USER }}
