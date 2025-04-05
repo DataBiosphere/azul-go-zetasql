@@ -57,6 +57,14 @@ jobs:
           env.azul_docker_go_zetasql_upstream_version,
           env.azul_docker_go_zetasql_internal_version
           ) }} >> "$GITHUB_ENV"
+      - run: >
+          echo azul_docker_go_zetasql_tagged_image=${{ format(
+          '{0}{1}:{2}-{3}',
+          env.azul_docker_registry,
+          env.azul_docker_go_zetasql_image,
+          env.azul_docker_go_zetasql_version,
+          matrix.platform
+          ) }} >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -103,13 +111,7 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: "${{ format(
-            '{0}{1}:{2}-{3}',
-            env.azul_docker_registry,
-            env.azul_docker_go_zetasql_image,
-            env.azul_docker_go_zetasql_version,
-            matrix.platform
-          ) }}"
+          tags: ${{ env.azul_docker_go_zetasql_tagged_image }}
           cache-from: |
             type=local,src=~/.cache/go-build
             ${{ format(
