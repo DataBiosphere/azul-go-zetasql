@@ -1,6 +1,8 @@
-FROM golang:1.21-bookworm
+ARG azul_docker_go_zetasql_base_image_tag
 
-ARG VERSION
+FROM golang:${azul_docker_go_zetasql_base_image_tag}
+
+ARG azul_docker_go_zetasql_internal_version
 
 RUN apt-get update && apt-get install -y --no-install-recommends clang
 

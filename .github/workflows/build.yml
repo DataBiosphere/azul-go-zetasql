@@ -34,7 +34,7 @@ env:
   # Both this value (internal_version) and the combined value (upstream_version
   # + internal_version) will be passed as arguments to the Dockerfile.
   #
-  azul_docker_go_zetasql_internal_version: 1
+  azul_docker_go_zetasql_internal_version: 2
 
 jobs:
   build-image:
@@ -91,15 +91,8 @@ jobs:
           build-args: |
             azul_docker_go_zetasql_base_image_tag=${{ env.azul_docker_go_zetasql_base_image_tag }}
             azul_docker_go_zetasql_internal_version=${{ env.azul_docker_go_zetasql_internal_version }}
-            VERSION=${{ env.azul_docker_go_zetasql_version }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           context: .
-          # We disable provenance for a single platform (non-multiarch) build
-          # https://github.com/docker/build-push-action/issues/755
-          provenance: false
-          # FIXME: Build arm64 version of azul-bigquery-emulator
-          #        https://github.com/DataBiosphere/azul/issues/6090
-          # platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: "${{ format(
             '{0}{1}:{2}',
