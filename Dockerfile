@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends clang
 
 ENV CGO_ENABLED 1
 ENV CXX clang++
+ENV CGO_CFLAGS="-fno-PIC"
+ENV CGO_CPPFLAGS="-fno-PIC"
+ENV CGO_CXXFLAGS="-fno-PIC"
 
 WORKDIR /go-zetasql
 
