@@ -21,7 +21,7 @@ env:
   # value isn't reflected in the tag for this image, you also need to bump the
   # internal version below when changing this variable.
   #
-  azul_docker_go_zetasql_base_image_tag: 1.25.4-trixie
+  azul_docker_go_zetasql_base_image_tag: 1.26.1-trixie
 
   # The version where this repo diverges from the upstream repo.
   #
@@ -34,7 +34,7 @@ env:
   # Both this value (internal_version) and the combined value (upstream_version
   # + internal_version) will be passed as arguments to the Dockerfile.
   #
-  azul_docker_go_zetasql_internal_version: 7
+  azul_docker_go_zetasql_internal_version: 8
 
 jobs:
   build-image:
