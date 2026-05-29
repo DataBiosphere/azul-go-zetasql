@@ -34,7 +34,7 @@ env:
   # Both this value (internal_version) and the combined value (upstream_version
   # + internal_version) will be passed as arguments to the Dockerfile.
   #
-  azul_docker_go_zetasql_internal_version: 11
+  azul_docker_go_zetasql_internal_version: 12
 
 jobs:
   build-image:
